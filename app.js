@@ -55,7 +55,6 @@ function escapeHTML(text) {
 
 // Arama yaparken gecikmeli çalıştır (performans için)
 let searchTimeout = null;
-
 function handleSearchInput() {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(filterBooks, 300);
@@ -124,7 +123,9 @@ function resetFilters() {
 
 // Modal'ı aç (ekleme veya düzenleme)
 function addBooksModalOpen(editId = null) {
-    const modal = new bootstrap.Modal(document.getElementById('addBookModal'));
+    const modalEl = document.getElementById('addBookModal');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
     const title = document.getElementById('modalTitle');
     const btn = document.getElementById('saveBookBtn');
     const editField = document.getElementById('editId');
@@ -158,13 +159,7 @@ function addBooksModalOpen(editId = null) {
     setTimeout(toggleRatingAndNotes, 100);
 }
 
-// Modal'ı kapat
-function addBooksClose() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('addBookModal'));
-    if (modal) modal.hide();
-}
-
-// Duruma göre puan ve not alanlarını aç/kapa (Okundu ise aktif, değilse pasif ve temizle)
+// Duruma göre puan ve not alanlarını aç/kapa
 function toggleRatingAndNotes() {
     const status = document.getElementById('bookStatus').value;
     const isRead = status === 'Okundu';
@@ -186,7 +181,7 @@ function toggleRatingAndNotes() {
     }
 }
 
-// Kitap kaydet (yeni ekle veya güncelle)
+// Kitap kaydet (Yeni ekle veya Güncelle) - Puan Hatası Giderildi
 function saveBook() {
     const title = document.getElementById('bookTitle').value.trim();
     const author = document.getElementById('bookAuthor').value.trim();
@@ -210,6 +205,10 @@ function saveBook() {
         return;
     }
 
+    // Durum "Okundu" değilse puan ve notlar sıfırlanır
+    let finalRating = (status === 'Okundu') ? rating : 0;
+    let finalNotes = (status === 'Okundu') ? notes : '';
+
     let books = getBooks();
 
     if (editId) {
@@ -217,13 +216,6 @@ function saveBook() {
         if (idx === -1) {
             alert('Kitap bulunamadı!');
             return;
-        }
-        
-        let finalRating = rating;
-        let finalNotes = notes;
-        if (status !== 'Okundu') {
-            finalRating = 0;
-            finalNotes = '';
         }
         
         books[idx] = {
@@ -247,25 +239,24 @@ function saveBook() {
             isbn,
             pageCount,
             status: status || 'Okunacak',
-            rating: 0,
-            notes: '',
+            rating: finalRating,
+            notes: finalNotes,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         });
     }
 
     saveBooks(books);
-    const modal = bootstrap.Modal.getInstance(document.getElementById('addBookModal'));
+    const modalEl = document.getElementById('addBookModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
     if (modal) modal.hide();
     filterBooks();
 }
 
-// Kitap sil (onay iste)
+// Kitap sil
 function deleteBook(bookId) {
     if (!confirm('Bu kitabı silmek istediğinize emin misiniz?')) return;
-    
-    const allBooks = getBooks();
-    const books = allBooks.filter(b => b.id !== bookId);
+    const books = getBooks().filter(b => b.id !== bookId);
     saveBooks(books);
     filterBooks();
 }
@@ -275,12 +266,9 @@ function editBook(bookId) {
     addBooksModalOpen(bookId);
 }
 
-// Kitapları ekrana bas
+// Kitapları ekrana bas (Tüm rozetler, kategoriler, ikonlar eklendi)
 function renderBooks(books = null) {
-    if (books === null || books === undefined) {
-        books = getBooks();
-    }
-
+    books = books || getBooks();
     const grid = document.getElementById('booksGrid');
     if (!grid) return;
 
@@ -399,7 +387,7 @@ function formatISBN(value) {
     return formatted;
 }
 
-// Sayfa yüklendiğinde çalışacaklar
+// Sayfa yüklendiğinde çalışacak event listener'lar
 document.addEventListener('DOMContentLoaded', function() {
     filterBooks();
 
@@ -421,18 +409,6 @@ document.addEventListener('DOMContentLoaded', function() {
         isbnInput.addEventListener('input', function() {
             this.value = formatISBN(this.value);
         });
-        isbnInput.addEventListener('paste', function() {
-            setTimeout(() => {
-                this.value = formatISBN(this.value);
-            }, 50);
-        });
-    }
-
-    const pagesInput = document.getElementById('bookPages');
-    if (pagesInput) {
-        pagesInput.addEventListener('blur', function() {
-            if (parseInt(this.value) < 0) this.value = 0;
-        });
     }
 
     const statusSelect = document.getElementById('bookStatus');
@@ -446,14 +422,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Başka sekmede değişiklik olursa sayfayı yenile
+// Sekmeler arası senkronizasyon
 window.addEventListener('storage', function(e) {
     if (e.key === 'books') {
         filterBooks();
     }
 });
 
-// Klavye kısayolları
+// Klavye kısayolları (Ctrl+N: Yeni Kitap, Esc: Modal Kapat)
 document.addEventListener('keydown', function(e) {
     if (e.ctrlKey && e.key === 'n') {
         e.preventDefault();
@@ -461,7 +437,10 @@ document.addEventListener('keydown', function(e) {
     }
     
     if (e.key === 'Escape') {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addBookModal'));
-        if (modal) modal.hide();
+        const modalEl = document.getElementById('addBookModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        }
     }
 });
