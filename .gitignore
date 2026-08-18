@@ -1,0 +1,28 @@
+# Bağımlılıklar ve node modülleri
+node_modules/
+package-lock.json
+
+# IDE / Editör dosyaları
+.vscode/
+.idea/
+*.sublime-workspace
+
+# İşletim sistemi dosyaları
+.DS_Store
+Thumbs.db
+
+# Log dosyaları
+*.log
+
+# Çevresel değişkenler (Gizli veriler)
+.env
+.env.local
+
+# Web uygulaması geçici dosyaları
+dist/
+build/
+coverage/
+
+# Proje özel dosyaları
+*.sqlite
+*.sqlite-journal
